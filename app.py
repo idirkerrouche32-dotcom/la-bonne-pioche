@@ -4,14 +4,19 @@ from html import escape
 app = Flask(__name__)
 app.secret_key = "a-remplacer-par-une-cle-secrete-longue"
 
-produits = [
-    {"id": 1, "nom": "Sabots roses", "prix": 7, "categorie": "Chaussures", "promo": 0, "tailles": ["38", "39", "40"42 41 43], "emoji": "👡"},
-    {"id": 2, "nom": "Baskets homme", "prix": 19.90, "categorie": "Chaussures", "promo": 10, "tailles": ["40", "41", "42", "43"], "emoji": "👟"},
-    {"id": 3, "nom": "Jean homme", "prix": 14.90, "categorie": "Vêtements", "promo": 0, "tailles": ["38", "40", "42", "44"], "emoji": "👖"},
-    {"id": 4, "nom": "Sweat à capuche", "prix": 15.90, "categorie": "Vêtements", "promo": 20, "tailles": ["S", "M", "L", "XL"], "emoji": "🧥"},
-    {"id": 5, "nom": "Sac à main", "prix": 12.90, "categorie": "Accessoires", "promo": 0, "tailles": ["Unique"], "emoji": "👜"},
-    {"id": 6, "nom": "Pull femme", "prix": 12.90, "categorie": "Vêtements", "promo": 10, "tailles": ["S", "M", "L"], "emoji": "👚"},
-]
+<img src="{{ url_for('static', filename=p.photos[0]) }}"
+     alt="{{ p.nom }}" loading="lazy"
+     style="display:block; width:100%; max-height:300px; object-fit:contain;">
+<details>
+  <summary>Voir les autres photos</summary>
+  {% for photo in p.photos[1:] %}
+    <img src="{{ url_for('static', filename=photo) }}"
+         alt="{{ p.nom }}" loading="lazy"
+         style="display:block; width:100%; max-height:300px; object-fit:contain;">
+  {% endfor %}
+</details>
+<h3>{{ p.nom }}</h3>
+<p>{{ p.description }}</p>
 
 def prix_final(p):
     return round(p["prix"] * (1 - p["promo"] / 100), 2)
