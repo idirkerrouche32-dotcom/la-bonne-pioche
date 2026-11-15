@@ -1,28 +1,71 @@
-from flask import Flask, request, session, redirect, render_template_string
-from html import escape
+import os
+from pathlib import Path
+
+from flask import Flask, redirect, render_template_string, request, session
 
 app = Flask(__name__)
-app.secret_key = "a-remplacer-par-une-cle-secrete-longue"
+app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(32)
 
-<img src="{{ url_for('static', filename=p.photos[0]) }}"
-     alt="{{ p.nom }}" loading="lazy"
-     style="display:block; width:100%; max-height:300px; object-fit:contain;">
-<details>
-  <summary>Voir les autres photos</summary>
-  {% for photo in p.photos[1:] %}
-    <img src="{{ url_for('static', filename=photo) }}"
-         alt="{{ p.nom }}" loading="lazy"
-         style="display:block; width:100%; max-height:300px; object-fit:contain;">
-  {% endfor %}
-</details>
-<h3>{{ p.nom }}</h3>
-<p>{{ p.description }}</p>
+produits = [
+    {
+        "id": 7,
+        "nom": "Veste bomber femme",
+        "categorie": "Vêtements",
+        "prix": 20,
+        "description": (
+            "Veste courte à finition satinée, avec écussons sur la poitrine, "
+            "fermeture à anneau, deux poches zippées et poignets côtelés."
+        ),
+        "couleurs": [
+            "Bleu marine", "Bleu ciel", "Rouge", "Rose",
+            "Kaki et jaune", "Kaki et blanc",
+        ],
+        "tailles": ["S", "M", "L", "XL"],
+        "photos": [
+            "IMG_5779.jpeg", "IMG_5777.jpeg", "IMG_5778.jpeg",
+            "IMG_5785.jpeg", "IMG_5787.jpeg", "IMG_5786.jpeg",
+        ],
+    },
+    {
+        "id": 8,
+        "nom": "Sabots en feutre",
+        "categorie": "Chaussures",
+        "prix": 7,
+        "description": (
+            "Sabots à bout fermé et talon ouvert, avec une bride à boucle "
+            "et une semelle rainurée."
+        ),
+        "couleurs": ["Bleu", "Rose", "Gris anthracite"],
+        "tailles": [str(pointure) for pointure in range(36, 46)],
+        "photos": ["IMG_5783.jpeg", "IMG_5782.jpeg", "IMG_5784.jpeg"],
+    },
+    {
+        "id": 9,
+        "nom": "Chaussures de marche",
+        "categorie": "Chaussures",
+        "prix": 10,
+        "description": (
+            "Chaussures basses à lacets, avec un renfort à l’avant "
+            "et une semelle crantée."
+        ),
+        "couleurs": ["Noir", "Marron"],
+        "tailles": [str(pointure) for pointure in range(40, 46)],
+        "photos": ["IMG_5780.jpeg", "IMG_5781.jpeg"],
+    },
+]
 
-def prix_final(p):
-    return round(p["prix"] * (1 - p["promo"] / 100), 2)
+produits_par_id = {produit["id"]: produit for produit in produits}
 
+
+@app.template_filter("euro")
 def euros(montant):
     return f"{montant:.2f} €".replace(".", ",")
+
+
+@app.template_test("photo_disponible")
+def photo_disponible(nom):
+    return (Path(app.root_path) / "static" / nom).is_file()
+
 
 PAGE = """
 <!DOCTYPE html>
@@ -32,225 +75,261 @@ PAGE = """
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>La Bonne Pioche</title>
 <style>
-* {box-sizing:border-box}
-body {margin:0;font-family:Arial,sans-serif;background:#f3f6fb;color:#102e59}
-header {background:#073c85;color:white;padding:12px;text-align:center}
-header small {font-size:13px}
-nav {background:white;padding:17px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-.logo {font-size:25px;font-weight:bold;color:#073c85}
-a {color:inherit;text-decoration:none}
-nav a {padding:8px}
-.hero {background:linear-gradient(120deg,#0753a8,#072e68);color:white;text-align:center;padding:45px 15px}
-.hero h1 {font-size:38px;margin:8px}
-.hero p {font-size:19px}
-.promo {display:inline-block;background:#ffb400;color:#142b48;padding:12px;border-radius:10px;font-weight:bold}
-.container {max-width:1150px;margin:auto;padding:20px}
-.categories {display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px}
-.categories a {background:white;border:1px solid #ddd;border-radius:20px;padding:10px 17px}
-.grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px}
-.card {background:white;border-radius:14px;padding:18px;box-shadow:0 2px 8px #0001}
-.photo {height:130px;display:flex;align-items:center;justify-content:center;background:#eef3f9;border-radius:12px;font-size:75px}
-.card h3 {margin-bottom:8px}
-.price {color:#e21e29;font-weight:bold;font-size:23px}
-.old {text-decoration:line-through;color:gray;font-size:14px}
-.badge {background:#e21e29;color:white;padding:5px 9px;border-radius:6px;font-size:12px}
-select,input {padding:10px;border:1px solid #ccc;border-radius:7px;max-width:100%}
-button,.btn {display:inline-block;background:#ffac00;border:0;border-radius:8px;padding:12px 16px;font-weight:bold;cursor:pointer;color:#102e59}
-button:hover,.btn:hover {background:#ffca45}
-.card form {display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-table {width:100%;border-collapse:collapse;background:white}
-td,th {padding:13px;border-bottom:1px solid #ddd;text-align:left}
-.message {padding:20px;background:white;border-radius:10px}
-footer {margin-top:40px;background:#073c85;color:white;text-align:center;padding:25px}
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f3f6fb;
+    color: #102e59;
+}
+nav {
+    background: white;
+    padding: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+nav a { color: inherit; }
+.logo { font-size: 23px; font-weight: bold; text-decoration: none; }
+.hero {
+    padding: 32px 16px;
+    text-align: center;
+    background: #073c85;
+    color: white;
+}
+.hero h1 { margin: 0 0 8px; }
+.hero p { margin: 0; }
+.container { max-width: 1100px; margin: auto; padding: 20px; }
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+    gap: 16px;
+}
+.card, .message { background: white; border-radius: 12px; padding: 16px; }
+.photo {
+    display: block;
+    width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+    background: #f3f6fb;
+    border-radius: 8px;
+}
+details { margin: 10px 0; }
+details .photo { margin-top: 8px; }
+summary { cursor: pointer; }
+.price { color: #b61923; font-size: 22px; font-weight: bold; }
+label { display: block; margin: 10px 0; }
+select, input { display: block; width: 100%; padding: 10px; margin-top: 4px; }
+button, .btn {
+    display: inline-block;
+    background: #ffb400;
+    color: #102e59;
+    border: 0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+}
+.ligne-panier { margin-bottom: 10px; }
+footer { padding: 20px; text-align: center; color: white; background: #073c85; }
 </style>
 </head>
 <body>
-<header>
-<small>🚚 Livraison en France | 🔒 Paiement sécurisé à venir | 🎁 Petits prix</small>
-</header>
-<nav>
-<a href="/" class="logo">🛍️ La Bonne Pioche</a>
-<div>
-<a href="/">Accueil</a>
-<a href="/?categorie=Vêtements">Vêtements</a>
-<a href="/?categorie=Chaussures">Chaussures</a>
-<a href="/?categorie=Accessoires">Accessoires</a>
-<a href="/panier">🛒 Panier ({{ nombre }})</a>
-</div>
+<nav aria-label="Navigation principale">
+    <a class="logo" href="/">La Bonne Pioche</a>
+    <a href="/?categorie=Vêtements">Vêtements</a>
+    <a href="/?categorie=Chaussures">Chaussures</a>
+    <a href="/panier">Panier ({{ nombre }})</a>
 </nav>
 
 {% if page == "accueil" %}
 <section class="hero">
-<h1>LA BONNE PIOCHE</h1>
-<p>Des produits à petits prix pour toute la famille !</p>
-<span class="promo">🎉 Promotions -10 % et -20 %</span>
+    <h1>La Bonne Pioche</h1>
+    <p>Vêtements et chaussures à petits prix</p>
 </section>
-<div class="container">
-<h2>Nos catégories</h2>
-<div class="categories">
-<a href="/">Tous les articles</a>
-<a href="/?categorie=Vêtements">👕 Vêtements</a>
-<a href="/?categorie=Chaussures">👟 Chaussures</a>
-<a href="/?categorie=Accessoires">👜 Accessoires</a>
-</div>
-<h2>🔥 Nos meilleures offres</h2>
-<div class="grid">
-{% for p in produits %}
-<div class="card">
-<div class="photo">{{ p.emoji }}</div>
-<h3>{{ p.nom }}</h3>
-<p>{{ p.categorie }}</p>
-{% if p.promo %}
-<span class="badge">-{{ p.promo }} %</span>
-<p class="old">{{ p.prix|euro }}</p>
-{% endif %}
-<p class="price">{{ p|final|euro }}</p>
-<form action="/ajouter" method="post">
-<input type="hidden" name="id" value="{{ p.id }}">
-<select name="taille">
-{% for taille in p.tailles %}
-<option value="{{ taille }}">{{ taille }}</option>
-{% endfor %}
-</select>
-<button type="submit">Ajouter au panier</button>
-</form>
-</div>
-{% endfor %}
-</div>
-</div>
+<main class="container">
+    <h2>{{ categorie or "Tous les articles" }}</h2>
+    <div class="grid">
+    {% for produit in catalogue %}
+        <article class="card">
+            {% set photos = produit.photos | select("photo_disponible") | list %}
+            {% if photos %}
+            <img class="photo" src="{{ url_for('static', filename=photos[0]) }}"
+                 alt="{{ produit.nom }}" loading="lazy">
+            {% endif %}
+            {% if photos | length > 1 %}
+            <details>
+                <summary>Voir les autres photos</summary>
+                {% for photo in photos[1:] %}
+                <img class="photo" src="{{ url_for('static', filename=photo) }}"
+                     alt="{{ produit.nom }}" loading="lazy">
+                {% endfor %}
+            </details>
+            {% endif %}
+            <h3>{{ produit.nom }}</h3>
+            <p>{{ produit.description }}</p>
+            <p class="price">{{ produit.prix | euro }}</p>
+            <form action="/ajouter" method="post">
+                <input type="hidden" name="id" value="{{ produit.id }}">
+                <label>Couleur
+                    <select name="couleur" required>
+                        {% for couleur in produit.couleurs %}
+                        <option>{{ couleur }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>{{ "Taille" if produit.categorie == "Vêtements" else "Pointure" }}
+                    <select name="taille" required>
+                        {% for taille in produit.tailles %}
+                        <option>{{ taille }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <button type="submit">Ajouter au panier</button>
+            </form>
+        </article>
+    {% else %}
+        <p>Aucun article dans cette catégorie.</p>
+    {% endfor %}
+    </div>
+</main>
+
 {% elif page == "panier" %}
-<div class="container">
-<h1>🛒 Mon panier</h1>
-{% if lignes %}
-<table>
-<tr><th>Article</th><th>Taille</th><th>Prix</th><th></th></tr>
-{% for ligne in lignes %}
-<tr>
-<td>{{ ligne.nom }}</td>
-<td>{{ ligne.taille }}</td>
-<td>{{ ligne.prix|euro }}</td>
-<td>
-<form action="/supprimer" method="post">
-<input type="hidden" name="index" value="{{ loop.index0 }}">
-<button type="submit">Retirer</button>
-</form>
-</td>
-</tr>
-{% endfor %}
-</table>
-<h2>Total : {{ total|euro }}</h2>
-<a class="btn" href="/commande">Passer commande</a>
-{% else %}
-<p>Votre panier est vide.</p>
-<a class="btn" href="/">Voir les produits</a>
-{% endif %}
-</div>
+<main class="container">
+    <h1>Mon panier</h1>
+    {% for ligne in lignes %}
+    <article class="card ligne-panier">
+        <strong>{{ ligne.produit.nom }}</strong>
+        <p>{{ ligne.couleur }} · {{ ligne.taille }} · {{ ligne.produit.prix | euro }}</p>
+        <form action="/supprimer" method="post">
+            <input type="hidden" name="index" value="{{ loop.index0 }}">
+            <button type="submit">Retirer</button>
+        </form>
+    </article>
+    {% else %}
+    <p>Votre panier est vide.</p>
+    {% endfor %}
+    {% if lignes %}
+    <p class="price">Total {{ total | euro }}</p>
+    <a class="btn" href="/commande">Passer commande</a>
+    {% else %}
+    <a class="btn" href="/">Voir les articles</a>
+    {% endif %}
+</main>
+
 {% elif page == "commande" %}
-<div class="container">
-<h1>Finaliser ma commande</h1>
-<p>Total : <strong>{{ total|euro }}</strong></p>
-<div class="message">
-<p>Cette boutique est une démonstration. Aucun paiement réel n'est effectué.</p>
-<form method="post">
-<p><input name="nom" placeholder="Nom et prénom" required></p>
-<p><input name="email" type="email" placeholder="Adresse e-mail" required></p>
-<p><input name="adresse" placeholder="Adresse de livraison" required></p>
-<p>
-<select name="livraison">
-<option>Mondial Relay (simulation)</option>
-<option>Colissimo (simulation)</option>
-</select>
-</p>
-<button type="submit">Simuler ma commande</button>
-</form>
-</div>
-</div>
+<main class="container">
+    <h1>Finaliser ma commande</h1>
+    <div class="message">
+        <p>Total {{ total | euro }}</p>
+        <p>Commande de démonstration. Aucun paiement réel.</p>
+        <form method="post">
+            <label>Nom et prénom<input name="nom" required></label>
+            <label>Adresse e-mail<input name="email" type="email" required></label>
+            <label>Adresse de livraison<input name="adresse" required></label>
+            <label>Livraison
+                <select name="livraison">
+                    <option>Mondial Relay (simulation)</option>
+                    <option>Colissimo (simulation)</option>
+                </select>
+            </label>
+            <button type="submit">Simuler ma commande</button>
+        </form>
+    </div>
+</main>
+
 {% elif page == "confirmation" %}
-<div class="container">
-<div class="message">
-<h1>✅ Commande simulée !</h1>
-<p>Merci {{ nom }} !</p>
-<p>Votre simulation de commande est terminée.</p>
-<p>Aucun paiement ni aucune livraison n'ont été déclenchés.</p>
-<a class="btn" href="/">Retour à la boutique</a>
-</div>
-</div>
+<main class="container">
+    <h1>Commande simulée</h1>
+    <p>Merci {{ nom }}. Aucun paiement ni envoi n’a été déclenché.</p>
+    <a class="btn" href="/">Retour à la boutique</a>
+</main>
 {% endif %}
-<footer>
-<p>© La Bonne Pioche — Boutique de démonstration</p>
-<p>Livraison Mondial Relay et Colissimo : intégration à venir</p>
-</footer>
+
+<footer>La Bonne Pioche · Boutique de démonstration</footer>
 </body>
 </html>
 """
 
-app.jinja_env.filters["euro"] = euros
-app.jinja_env.filters["final"] = prix_final
 
-def afficher(page, **donnees):
-    return render_template_string(
-        PAGE, page=page,
-        nombre=len(session.get("panier", [])),
-        **donnees
-    )
-
-@app.route("/")
-def accueil():
-    categorie = request.args.get("categorie", "")
-    selection = [
-        p for p in produits
-        if not categorie or p["categorie"] == categorie
-    ]
-    return afficher("accueil", produits=selection)
-
-@app.route("/ajouter", methods=["POST"])
-def ajouter():
-    try:
-        identifiant = int(request.form.get("id", "0"))
-    except ValueError:
-        return redirect("/")
-    p = next((x for x in produits if x["id"] == identifiant), None)
-    if p:
-        taille = request.form.get("taille", "")
-        if taille in p["tailles"]:
-            panier = session.get("panier", [])
-            panier.append({"id": p["id"], "taille": taille})
-            session["panier"] = panier
-    return redirect("/panier")
-
-def contenu_panier():
+def lire_panier():
     lignes = []
     for article in session.get("panier", []):
-        p = next((x for x in produits if x["id"] == article["id"]), None)
-        if p:
-            lignes.append({
-                "nom": p["nom"],
-                "taille": article["taille"],
-                "prix": prix_final(p)
-            })
+        produit = produits_par_id.get(article.get("id"))
+        if produit is None:
+            continue
+        couleur = article.get("couleur")
+        taille = article.get("taille", "")
+        if couleur is None:
+            couleur, _, taille = taille.partition(" - ")
+        if couleur in produit["couleurs"] and taille in produit["tailles"]:
+            lignes.append({"produit": produit, "couleur": couleur, "taille": taille})
     return lignes
 
-@app.route("/panier")
-def panier():
-    lignes = contenu_panier()
-    total = round(sum(x["prix"] for x in lignes), 2)
-    return afficher("panier", lignes=lignes, total=total)
 
-@app.route("/supprimer", methods=["POST"])
-def supprimer():
-    panier = session.get("panier", [])
-    try:
-        index = int(request.form.get("index", "-1"))
-        if 0 <= index < len(panier):
-            panier.pop(index)
-            session["panier"] = panier
-    except ValueError:
-        pass
+def enregistrer_panier(lignes):
+    session["panier"] = [
+        {
+            "id": ligne["produit"]["id"],
+            "couleur": ligne["couleur"],
+            "taille": ligne["taille"],
+        }
+        for ligne in lignes
+    ]
+
+
+@app.get("/")
+def accueil():
+    categorie = request.args.get("categorie", "")
+    catalogue = [
+        produit for produit in produits
+        if not categorie or produit["categorie"] == categorie
+    ]
+    return render_template_string(
+        PAGE, page="accueil", catalogue=catalogue,
+        categorie=categorie, nombre=len(lire_panier()),
+    )
+
+
+@app.post("/ajouter")
+def ajouter():
+    produit = produits_par_id.get(request.form.get("id", type=int))
+    if produit is None:
+        return redirect("/")
+    couleur = request.form.get("couleur", "")
+    taille = request.form.get("taille", "")
+    if couleur in produit["couleurs"] and taille in produit["tailles"]:
+        lignes = lire_panier()
+        lignes.append({"produit": produit, "couleur": couleur, "taille": taille})
+        enregistrer_panier(lignes)
     return redirect("/panier")
+
+
+@app.get("/panier")
+def panier():
+    lignes = lire_panier()
+    total = sum(ligne["produit"]["prix"] for ligne in lignes)
+    return render_template_string(
+        PAGE, page="panier", lignes=lignes, total=total, nombre=len(lignes),
+    )
+
+
+@app.post("/supprimer")
+def supprimer():
+    lignes = lire_panier()
+    index = request.form.get("index", default=-1, type=int)
+    if 0 <= index < len(lignes):
+        lignes.pop(index)
+        enregistrer_panier(lignes)
+    return redirect("/panier")
+
 
 @app.route("/commande", methods=["GET", "POST"])
 def commande():
-    lignes = contenu_panier()
+    lignes = lire_panier()
     if not lignes:
         return redirect("/panier")
     if request.method == "POST":
@@ -258,9 +337,14 @@ def commande():
         if not nom:
             return redirect("/commande")
         session.pop("panier", None)
-        return afficher("confirmation", nom=nom)
-    total = round(sum(x["prix"] for x in lignes), 2)
-    return afficher("commande", total=total)
+        return render_template_string(
+            PAGE, page="confirmation", nom=nom, nombre=0,
+        )
+    total = sum(ligne["produit"]["prix"] for ligne in lignes)
+    return render_template_string(
+        PAGE, page="commande", total=total, nombre=len(lignes),
+    )
+
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
