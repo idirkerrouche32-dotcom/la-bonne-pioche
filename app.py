@@ -5,7 +5,7 @@ app = Flask(__name__)
 app.secret_key = "a-remplacer-par-une-cle-secrete-longue"
 
 produits = [
-    {"id": 1, "nom": "Sabots roses", "prix": 7, "categorie": "Chaussures", "promo": 0, "tailles": ["38", "39", "40"], "emoji": "👡"},
+    {"id": 1, "nom": "Sabots roses", "prix": 7, "categorie": "Chaussures", "promo": 0, "tailles": ["38", "39", "40"42 41 43], "emoji": "👡"},
     {"id": 2, "nom": "Baskets homme", "prix": 19.90, "categorie": "Chaussures", "promo": 10, "tailles": ["40", "41", "42", "43"], "emoji": "👟"},
     {"id": 3, "nom": "Jean homme", "prix": 14.90, "categorie": "Vêtements", "promo": 0, "tailles": ["38", "40", "42", "44"], "emoji": "👖"},
     {"id": 4, "nom": "Sweat à capuche", "prix": 15.90, "categorie": "Vêtements", "promo": 20, "tailles": ["S", "M", "L", "XL"], "emoji": "🧥"},
